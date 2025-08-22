@@ -1,4 +1,4 @@
-module gitlab.com/t2161/quanti-sdk
+module github.com/quantiio/quanti-sdk
 
 go 1.24.0
 
