@@ -246,6 +246,7 @@ func Checkpoint(state map[string]string, err *QError) {
 		entry := CheckpointMsg{
 			Type:      MsgTypeCheckpoint,
 			State:     state,
+			Error:     err,
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
 		}
 		out, err := json.Marshal(entry)

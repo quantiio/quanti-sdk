@@ -22,6 +22,7 @@ type LogMsg struct {
 type CheckpointMsg struct {
 	Type      MsgType           `json:"type"`
 	State     map[string]string `json:"state"`
+	Error     *QError           `json:"error"`
 	Timestamp string            `json:"timestamp"`
 }
 
