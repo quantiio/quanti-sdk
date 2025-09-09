@@ -25,6 +25,12 @@ type CheckpointMsg struct {
 	Timestamp string            `json:"timestamp"`
 }
 
+type CredentialsMsg struct {
+	Type        MsgType                `json:"type"`
+	Credentials map[string]interface{} `json:"credentials"`
+	Timestamp   string                 `json:"timestamp"`
+}
+
 type RequestParams struct {
 	StartDate string `json:"start_date"`
 	EndDate   string `json:"end_date"`

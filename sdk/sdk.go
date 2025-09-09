@@ -19,9 +19,10 @@ var (
 )
 
 const (
-	MsgTypeProcessed  = "processed"
-	MsgTypeLog        = "log"
-	MsgTypeCheckpoint = "checkpoint"
+	MsgTypeCredentials = "credentials"
+	MsgTypeProcessed   = "processed"
+	MsgTypeLog         = "log"
+	MsgTypeCheckpoint  = "checkpoint"
 )
 
 // #region Debug
@@ -166,6 +167,38 @@ func Errorf(format string, args ...interface{}) {
 }
 func Debugf(format string, args ...interface{}) {
 	DebugLog(fmt.Sprintf(format, args...))
+}
+
+// #region UpdateConfigFile
+func UpdateCredentials(credentials map[string]interface{}) error {
+	if debugMode {
+
+		// Sérialiser en JSON
+		data, e := json.MarshalIndent(credentials, "", "  ")
+		if e != nil {
+			return fmt.Errorf("erreur de sérialisation JSON: %w", e)
+		}
+
+		// Écrire dans un fichier local credentials.json
+		e = os.WriteFile("credentials.json", data, 0644)
+		if e != nil {
+			return fmt.Errorf("erreur d'écriture du fichier: %w", e)
+		}
+	} else {
+		entry := CredentialsMsg{
+			Type:        MsgTypeCredentials,
+			Credentials: credentials,
+			Timestamp:   time.Now().UTC().Format(time.RFC3339),
+		}
+		out, err := json.Marshal(entry)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Erreur serialization credentials: %v\n", err)
+			return nil
+		}
+		fmt.Println(string(out))
+	}
+
+	return nil
 }
 
 // #region Checkpoint
