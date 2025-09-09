@@ -12,7 +12,7 @@ type QError struct {
 	Code    QErrorCode `json:"code"`
 	Message string     `json:"message,omitempty"`
 	Details string     `json:"details,omitempty"`
-	Err     error      `json:"error"`
+	Err     string     `json:"error"`
 }
 
 const (
@@ -95,9 +95,9 @@ func (e *QError) Error() string {
 	if e == nil {
 		return "nil QError"
 	}
-	if e.Err != nil {
+	if e.Err != "" {
 
-		return fmt.Sprintf("code: %d, message: %s, cause: %v", e.Code, e.ErrorMessage(), e.Err.Error())
+		return fmt.Sprintf("code: %d, message: %s, cause: %v", e.Code, e.ErrorMessage(), e.Err)
 	}
 
 	return fmt.Sprintf("code: %d, message: %s", e.Code, e.ErrorMessage())
@@ -107,7 +107,7 @@ func (e *QError) Unwrap() error {
 	if e == nil {
 		return nil
 	}
-	return e.Err
+	return fmt.Errorf("%s", e.Err)
 }
 
 // Méthode pour obtenir le code d'erreur

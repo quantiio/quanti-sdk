@@ -172,7 +172,7 @@ func Warn(msg string) {
 func Error(err QError) {
 	Log("error", err.Error(), map[string]interface{}{
 		"code": err.Code,
-		"err":  err.Err.Error(),
+		"err":  err.Err,
 	})
 }
 func DebugLog(msg string) {
