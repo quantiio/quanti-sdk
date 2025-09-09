@@ -31,12 +31,13 @@ func Debug() {
 }
 
 // #region Process
-func Process(processFunc func(ConfigFile, map[string]string)) {
+func Process(processFunc func(ConfigFile, map[string]string, map[string]interface{})) {
 
 	time.Local = time.UTC
 
 	configPath := flag.String("config", "config.json", "Chemin du fichier de configuration")
 	statePath := flag.String("state", "state.json", "Chemin du fichier de state")
+	credentialsPath := flag.String("credentials", "credentials.json", "Chemin du fichier des identifiants")
 	flag.BoolVar(&debugMode, "debug", false, "Mode debug")
 	flag.Parse()
 
@@ -50,13 +51,19 @@ func Process(processFunc func(ConfigFile, map[string]string)) {
 		panic(fmt.Sprintf("Erreur lors du chargement de %s : %v", *statePath, err))
 	}
 
+	credentials, err := loadCredentialsFromFile(*credentialsPath)
+	if err != nil {
+		panic(fmt.Sprintf("Erreur lors du chargement de %s : %v", *credentialsPath, err))
+	}
+
 	if debugMode {
 		Debug()
 		logger.Debugf("Configuration: %v", config)
 		logger.Debugf("State: %v", state)
+		logger.Debugf("Credentials: %v", credentials)
 	}
 
-	processFunc(*config, state)
+	processFunc(*config, state, credentials)
 }
 
 // #region Upsert
@@ -68,8 +75,15 @@ func Upsert(data map[string]interface{}, state map[string]string) error {
 		return fmt.Errorf("erreur serialization JSON: %w", err)
 	}
 
-	// Encoder le JSON en base64
-	b64 := base64.StdEncoding.EncodeToString(payload)
+	var b64 string
+	if debugMode {
+		// Encoder le JSON en base64
+		b64 = string(payload)
+
+	} else {
+		// Encoder le JSON en base64
+		b64 = base64.StdEncoding.EncodeToString(payload)
+	}
 
 	// Construire le message à envoyer
 	msg := UpsertMsg{
@@ -87,10 +101,13 @@ func Upsert(data map[string]interface{}, state map[string]string) error {
 	}
 	if val, ok := state["date"]; ok {
 
-		//Verifier que la date est au format attendu
-		if _, err := time.Parse("2006-01-02", val); err != nil {
-			return fmt.Errorf("date invalide dans l'état: %s", val)
+		if val != "dimension" {
+			//Verifier que la date est au format attendu
+			if _, err := time.Parse("2006-01-02", val); err != nil {
+				return fmt.Errorf("date invalide dans l'état: %s", val)
+			}
 		}
+
 		msg.Date = val
 	}
 
@@ -251,6 +268,24 @@ func loadConfigFromFile(filename string) (*ConfigFile, error) {
 		return nil, err
 	}
 	return &m, nil
+}
+
+// #region loadConfigFromFile
+func loadCredentialsFromFile(filename string) (map[string]interface{}, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	bytes, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal(bytes, &m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // #region loadMapFromFile
