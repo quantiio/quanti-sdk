@@ -68,6 +68,7 @@ func Process(processFunc func(ConfigFile, map[string]string, map[string]interfac
 
 // #region Upsert
 func Upsert(data map[string]interface{}, state map[string]string) error {
+
 	// Sérialiser le paramètre data en JSON
 	payload, err := json.Marshal(data)
 	if err != nil {
@@ -99,7 +100,12 @@ func Upsert(data map[string]interface{}, state map[string]string) error {
 	if val, ok := data["adAccount"]; ok {
 		msg.AdAccount = val.(string)
 	}
+
 	if val, ok := state["date"]; ok {
+
+		if val == "" {
+			val = "dimension"
+		}
 
 		if val != "dimension" {
 			//Verifier que la date est au format attendu
