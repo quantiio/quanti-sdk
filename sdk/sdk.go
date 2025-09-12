@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -32,6 +34,13 @@ func Debug() {
 
 // #region Process
 func Process(processFunc func(ConfigFile, map[string]string, map[string]interface{})) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			Error(QError{Code: ERR_DEF_UNABLED_START_PROCESS, Message: fmt.Sprintf("%v", r)})
+			os.Exit(2)
+		}
+	}()
 
 	time.Local = time.UTC
 
@@ -259,10 +268,22 @@ func Checkpoint(state map[string]string, err *QError) {
 	}
 }
 
+func resolvePath(filename string) string {
+	if debugMode || strings.HasPrefix(filename, "/") || strings.Contains(filename, string(os.PathSeparator)) {
+		return filename
+	}
+	base := os.Getenv("DATA_PATH")
+	if base == "" {
+		return filename
+	} // fallback propre
+	return filepath.Join(base, filename)
+}
+
 // #region loadConfigFromFile
 func loadConfigFromFile(filename string) (*ConfigFile, error) {
 
-	path := os.Getenv("DATA_PATH") + "/" + filename
+	path := resolvePath(filename)
+
 	if debugMode {
 		path = filename
 	}
@@ -285,7 +306,7 @@ func loadConfigFromFile(filename string) (*ConfigFile, error) {
 
 // #region loadConfigFromFile
 func loadCredentialsFromFile(filename string) (map[string]interface{}, error) {
-	path := os.Getenv("DATA_PATH") + "/" + filename
+	path := resolvePath(filename)
 	if debugMode {
 		path = filename
 	}
@@ -308,7 +329,7 @@ func loadCredentialsFromFile(filename string) (map[string]interface{}, error) {
 
 // #region loadMapFromFile
 func loadMapFromFile(filename string) (map[string]string, error) {
-	path := os.Getenv("DATA_PATH") + "/" + filename
+	path := resolvePath(filename)
 	if debugMode {
 		path = filename
 	}
