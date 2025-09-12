@@ -261,7 +261,13 @@ func Checkpoint(state map[string]string, err *QError) {
 
 // #region loadConfigFromFile
 func loadConfigFromFile(filename string) (*ConfigFile, error) {
-	file, err := os.Open(filename)
+
+	path := os.Getenv("DATA_PATH") + "/" + filename
+	if debugMode {
+		path = filename
+	}
+
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +285,12 @@ func loadConfigFromFile(filename string) (*ConfigFile, error) {
 
 // #region loadConfigFromFile
 func loadCredentialsFromFile(filename string) (map[string]interface{}, error) {
-	file, err := os.Open(filename)
+	path := os.Getenv("DATA_PATH") + "/" + filename
+	if debugMode {
+		path = filename
+	}
+
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +308,13 @@ func loadCredentialsFromFile(filename string) (map[string]interface{}, error) {
 
 // #region loadMapFromFile
 func loadMapFromFile(filename string) (map[string]string, error) {
-	file, err := os.Open(filename)
+	path := os.Getenv("DATA_PATH") + "/" + filename
+	if debugMode {
+		path = filename
+	}
+
+	file, err := os.Open(path)
+
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Retourner une map vide si le fichier n'existe pas
