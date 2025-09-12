@@ -149,7 +149,7 @@ func (e *QError) MarshalJSON() ([]byte, error) {
 		Details string `json:"details,omitempty"`
 	}{
 		Alias:   (*Alias)(e),
-		Message: e.ErrorMessage(),
-		Details: e.Error(),
+		Message: e.ErrorMessage(), // => libellé du code
+		Details: e.Message,
 	})
 }
