@@ -37,7 +37,12 @@ func Process(processFunc func(ConfigFile, map[string]string, map[string]interfac
 
 	defer func() {
 		if r := recover(); r != nil {
-			Error(QError{Code: ERR_DEF_UNABLED_START_PROCESS, Message: fmt.Sprintf("%v", r)})
+			qe := QError{
+				Code:    ERR_DEF_UNABLED_START_PROCESS,
+				Message: fmt.Sprint(r),
+				Err:     fmt.Sprintf("%v", r),
+			}
+			Error(qe)
 			os.Exit(2)
 		}
 	}()
