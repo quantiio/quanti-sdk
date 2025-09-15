@@ -33,19 +33,7 @@ func Debug() {
 }
 
 // #region Process
-func Process(processFunc func(ConfigFile, map[string]string, map[string]interface{})) {
-
-	defer func() {
-		if r := recover(); r != nil {
-			qe := QError{
-				Code:    ERR_DEF_UNABLED_START_PROCESS,
-				Message: fmt.Sprint(r),
-				Err:     fmt.Sprintf("%v", r),
-			}
-			Error(qe)
-			os.Exit(2)
-		}
-	}()
+func Process(processFunc func(ConfigFile, map[string]string, map[string]interface{})) error {
 
 	time.Local = time.UTC
 
@@ -57,17 +45,17 @@ func Process(processFunc func(ConfigFile, map[string]string, map[string]interfac
 
 	config, err := loadConfigFromFile(*configPath)
 	if err != nil {
-		panic(fmt.Sprintf("Erreur lors du chargement de %s : %v", *configPath, err))
+		return fmt.Errorf("erreur lors du chargement de %s : %v", *configPath, err)
 	}
 
 	state, err := loadMapFromFile(*statePath)
 	if err != nil {
-		panic(fmt.Sprintf("Erreur lors du chargement de %s : %v", *statePath, err))
+		return fmt.Errorf("erreur lors du chargement de %s : %v", *statePath, err)
 	}
 
 	credentials, err := loadCredentialsFromFile(*credentialsPath)
 	if err != nil {
-		panic(fmt.Sprintf("Erreur lors du chargement de %s : %v", *credentialsPath, err))
+		return fmt.Errorf("erreur lors du chargement de %s : %v", *credentialsPath, err)
 	}
 
 	if debugMode {
@@ -78,6 +66,8 @@ func Process(processFunc func(ConfigFile, map[string]string, map[string]interfac
 	}
 
 	processFunc(*config, state, credentials)
+
+	return nil
 }
 
 // #region Upsert
