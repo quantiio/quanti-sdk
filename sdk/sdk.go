@@ -243,7 +243,9 @@ func Checkpoint(state map[string]string, err *QError) {
 		} else {
 			logger.WithFields(logrus.Fields{
 				"state": state,
-			}).Error(err.Error())
+				"code":  err.Code,
+				"err":   err.Err,
+			}).Error(err.Message)
 		}
 
 	} else {
