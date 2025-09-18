@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	debugMode bool
+	DebugMode bool
 
 	logger = logrus.New()
 )
@@ -40,7 +40,7 @@ func Process(processFunc func(ConfigFile, map[string]string, map[string]interfac
 	configPath := flag.String("config", "config.json", "Chemin du fichier de configuration")
 	statePath := flag.String("state", "state.json", "Chemin du fichier de state")
 	credentialsPath := flag.String("credentials", "credentials.json", "Chemin du fichier des identifiants")
-	flag.BoolVar(&debugMode, "debug", false, "Mode debug")
+	flag.BoolVar(&DebugMode, "debug", false, "Mode debug")
 	flag.Parse()
 
 	config, err := loadConfigFromFile(*configPath)
@@ -58,7 +58,7 @@ func Process(processFunc func(ConfigFile, map[string]string, map[string]interfac
 		return fmt.Errorf("erreur lors du chargement de %s : %v", *credentialsPath, err)
 	}
 
-	if debugMode {
+	if DebugMode {
 		Debug()
 		logger.Debugf("Configuration: %v", config)
 		logger.Debugf("State: %v", state)
@@ -81,7 +81,7 @@ func Upsert(data map[string]interface{}, state map[string]string) error {
 	}
 
 	var b64 string
-	if debugMode {
+	if DebugMode {
 		// Encoder le JSON en base64
 		b64 = string(payload)
 
@@ -121,7 +121,7 @@ func Upsert(data map[string]interface{}, state map[string]string) error {
 		msg.Date = val
 	}
 
-	if debugMode {
+	if DebugMode {
 		logger.Infof("Processed row (DEBUG MODE) %s", msg)
 	} else {
 		out, err := json.Marshal(msg)
@@ -136,7 +136,7 @@ func Upsert(data map[string]interface{}, state map[string]string) error {
 
 // #region Logging
 func Log(level, msg string, fields map[string]interface{}) {
-	if debugMode {
+	if DebugMode {
 		switch level {
 		case "error":
 			logger.WithFields(fields).Error(msg)
@@ -175,8 +175,9 @@ func Warn(msg string) {
 }
 func Error(err QError) {
 	Log("error", err.Error(), map[string]interface{}{
-		"code": err.Code,
-		"err":  err.Err,
+		"code":    err.Code,
+		"message": err.Message,
+		"err":     err.Err,
 	})
 }
 func DebugLog(msg string) {
@@ -198,7 +199,7 @@ func Debugf(format string, args ...interface{}) {
 
 // #region UpdateConfigFile
 func UpdateCredentials(credentials map[string]interface{}) error {
-	if debugMode {
+	if DebugMode {
 
 		// Sérialiser en JSON
 		data, e := json.MarshalIndent(credentials, "", "  ")
@@ -231,7 +232,7 @@ func UpdateCredentials(credentials map[string]interface{}) error {
 // #region Checkpoint
 func Checkpoint(state map[string]string, err *QError) {
 
-	if debugMode {
+	if DebugMode {
 
 		if err == nil {
 
@@ -264,7 +265,7 @@ func Checkpoint(state map[string]string, err *QError) {
 }
 
 func resolvePath(filename string) string {
-	if debugMode || strings.HasPrefix(filename, "/") || strings.Contains(filename, string(os.PathSeparator)) {
+	if DebugMode || strings.HasPrefix(filename, "/") || strings.Contains(filename, string(os.PathSeparator)) {
 		return filename
 	}
 	base := os.Getenv("DATA_PATH")
@@ -279,7 +280,7 @@ func loadConfigFromFile(filename string) (*ConfigFile, error) {
 
 	path := resolvePath(filename)
 
-	if debugMode {
+	if DebugMode {
 		path = filename
 	}
 
@@ -302,7 +303,7 @@ func loadConfigFromFile(filename string) (*ConfigFile, error) {
 // #region loadConfigFromFile
 func loadCredentialsFromFile(filename string) (map[string]interface{}, error) {
 	path := resolvePath(filename)
-	if debugMode {
+	if DebugMode {
 		path = filename
 	}
 
@@ -325,7 +326,7 @@ func loadCredentialsFromFile(filename string) (map[string]interface{}, error) {
 // #region loadMapFromFile
 func loadMapFromFile(filename string) (map[string]string, error) {
 	path := resolvePath(filename)
-	if debugMode {
+	if DebugMode {
 		path = filename
 	}
 
