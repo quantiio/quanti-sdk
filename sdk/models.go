@@ -33,8 +33,9 @@ type CredentialsMsg struct {
 }
 
 type RequestParams struct {
-	StartDate string `json:"start_date"`
-	EndDate   string `json:"end_date"`
+	StartDate   string `json:"start_date"`
+	EndDate     string `json:"end_date"`
+	ProcessType string `json:"process_type"`
 }
 
 type ConfigFile struct {
