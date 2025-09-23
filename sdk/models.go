@@ -70,6 +70,7 @@ type DatabaseMetaData struct {
 type OrderedField struct {
 	DatabaseMetaData DatabaseMetaData `json:"databaseMetaData"`
 	FieldPath        string           `json:"fieldPath"`
+	FieldSrc         string           `json:"fieldSrc"`
 }
 
 type Schema struct {
