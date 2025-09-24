@@ -416,7 +416,7 @@ func GetRequests(config ConfigFile) ([]Request, error) {
 		// On parse "connectorsaccountrequest" typé
 		caraw, hasCAR := reqMap["connectorsaccountrequest"]
 		if !hasCAR {
-			// rien à faire si l'item ne contient pas de connectorsaccountrequest
+			caraw = reqMap
 			return nil
 		}
 
