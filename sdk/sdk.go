@@ -417,7 +417,6 @@ func GetRequests(config ConfigFile) ([]Request, error) {
 		caraw, hasCAR := reqMap["connectorsaccountrequest"]
 		if !hasCAR {
 			caraw = reqMap
-			return nil
 		}
 
 		carBytes, err := json.Marshal(caraw)
