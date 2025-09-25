@@ -3,12 +3,13 @@ package sdk
 type MsgType string
 
 type UpsertMsg struct {
-	Type      MsgType `json:"type"`
-	ID        string  `json:"id"`
-	AdAccount string  `json:"ad_account"`
-	RequestId string  `json:"request_id"`
-	Message   string  `json:"message"`
-	Date      string  `json:"date"`
+	Type         MsgType `json:"type"`
+	ID           string  `json:"id"`
+	AdAccount    string  `json:"ad_account"`
+	RequestId    string  `json:"request_id"`
+	InsertedRows *int    `json:"inserted_rows"`
+	Message      string  `json:"message"`
+	Date         string  `json:"date"`
 }
 
 type LogMsg struct {
