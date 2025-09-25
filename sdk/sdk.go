@@ -105,6 +105,11 @@ func Upsert(data map[string]interface{}, state map[string]string) error {
 		msg.AdAccount = val.(string)
 	}
 
+	if val, ok := data["insertedRows"]; ok {
+		insertedRows := int(val.(float64))
+		msg.InsertedRows = &insertedRows
+	}
+
 	if val, ok := state["date"]; ok {
 
 		if val == "" {
