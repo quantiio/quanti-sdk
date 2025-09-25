@@ -106,7 +106,7 @@ func Upsert(data map[string]interface{}, state map[string]string) error {
 	}
 
 	if val, ok := data["insertedRows"]; ok {
-		insertedRows := int(val.(float64))
+		insertedRows := int(val.(int))
 		msg.InsertedRows = &insertedRows
 	}
 
