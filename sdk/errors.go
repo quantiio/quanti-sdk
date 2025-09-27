@@ -16,16 +16,17 @@ type QError struct {
 }
 
 const (
-	ERR_DEF_AUTH_NOT_VALID        QErrorCode = 1000
-	ERR_DEF_INVALID_REQUEST       QErrorCode = 1010
-	ERR_DEF_INVALID_DATA          QErrorCode = 1020
-	ERR_DEF_NOT_FOUND             QErrorCode = 1040
-	ERR_DEF_PERMISSION_DENIED     QErrorCode = 1050
-	ERR_DEF_INVALID_UPSERT        QErrorCode = 1060
-	ERR_DEF_INVALID_DATE          QErrorCode = 1070
-	ERR_DEF_INVALID_REQUESTS      QErrorCode = 1080
-	ERR_DEF_API_UNAVAILABLE       QErrorCode = 1090
-	ERR_DEF_UNABLED_START_PROCESS QErrorCode = 1100
+	ERR_DEF_AUTH_NOT_VALID               QErrorCode = 1000
+	ERR_DEF_INVALID_REQUEST              QErrorCode = 1010
+	ERR_DEF_INVALID_DATA                 QErrorCode = 1020
+	ERR_DEF_NOT_FOUND                    QErrorCode = 1040
+	ERR_DEF_PERMISSION_DENIED            QErrorCode = 1050
+	ERR_DEF_INVALID_UPSERT               QErrorCode = 1060
+	ERR_DEF_INVALID_DATE                 QErrorCode = 1070
+	ERR_DEF_INVALID_REQUESTS             QErrorCode = 1080
+	ERR_DEF_API_UNAVAILABLE              QErrorCode = 1090
+	ERR_DEF_UNABLED_START_PROCESS        QErrorCode = 1100
+	ERR_DEF_CANT_INSERT_IN_DATAWAREHOUSE QErrorCode = 1200
 	//Tmp error codes
 	ERR_TMP_RATE_LIMIT_EXCEEDED QErrorCode = 2000
 	ERR_TMP_TIMEOUT             QErrorCode = 2010
@@ -33,35 +34,37 @@ const (
 )
 
 var errorCodeLabels = map[QErrorCode]string{
-	ERR_DEF_AUTH_NOT_VALID:        "DEF",
-	ERR_DEF_INVALID_REQUEST:       "DEF",
-	ERR_DEF_INVALID_DATA:          "DEF",
-	ERR_DEF_NOT_FOUND:             "DEF",
-	ERR_DEF_PERMISSION_DENIED:     "DEF",
-	ERR_DEF_INVALID_UPSERT:        "DEF",
-	ERR_DEF_INVALID_DATE:          "DEF",
-	ERR_DEF_INVALID_REQUESTS:      "DEF",
-	ERR_TMP_RATE_LIMIT_EXCEEDED:   "TMP",
-	ERR_TMP_TIMEOUT:               "TMP",
-	ERR_TMP_SERVICE_UNAVAILABLE:   "TMP",
-	ERR_DEF_API_UNAVAILABLE:       "DEF",
-	ERR_DEF_UNABLED_START_PROCESS: "DEF",
+	ERR_DEF_AUTH_NOT_VALID:               "DEF",
+	ERR_DEF_INVALID_REQUEST:              "DEF",
+	ERR_DEF_INVALID_DATA:                 "DEF",
+	ERR_DEF_NOT_FOUND:                    "DEF",
+	ERR_DEF_PERMISSION_DENIED:            "DEF",
+	ERR_DEF_INVALID_UPSERT:               "DEF",
+	ERR_DEF_INVALID_DATE:                 "DEF",
+	ERR_DEF_INVALID_REQUESTS:             "DEF",
+	ERR_TMP_RATE_LIMIT_EXCEEDED:          "TMP",
+	ERR_TMP_TIMEOUT:                      "TMP",
+	ERR_TMP_SERVICE_UNAVAILABLE:          "TMP",
+	ERR_DEF_API_UNAVAILABLE:              "DEF",
+	ERR_DEF_UNABLED_START_PROCESS:        "DEF",
+	ERR_DEF_CANT_INSERT_IN_DATAWAREHOUSE: "DEF",
 }
 
 var ErrorCodes = map[QErrorCode]string{
-	ERR_DEF_AUTH_NOT_VALID:        "Auth not valid",
-	ERR_DEF_INVALID_REQUEST:       "Invalid Request",
-	ERR_DEF_INVALID_DATA:          "Invalid Data",
-	ERR_DEF_NOT_FOUND:             "Not Found",
-	ERR_DEF_PERMISSION_DENIED:     "Permission Denied",
-	ERR_TMP_RATE_LIMIT_EXCEEDED:   "Rate Limit Exceeded",
-	ERR_TMP_TIMEOUT:               "Timeout",
-	ERR_TMP_SERVICE_UNAVAILABLE:   "Service Unavailable",
-	ERR_DEF_INVALID_UPSERT:        "Invalid Upsert",
-	ERR_DEF_INVALID_DATE:          "Invalid Date",
-	ERR_DEF_INVALID_REQUESTS:      "Invalid Requests",
-	ERR_DEF_API_UNAVAILABLE:       "API Unavailable",
-	ERR_DEF_UNABLED_START_PROCESS: "Process start is disabled",
+	ERR_DEF_AUTH_NOT_VALID:               "Auth not valid",
+	ERR_DEF_INVALID_REQUEST:              "Invalid Request",
+	ERR_DEF_INVALID_DATA:                 "Invalid Data",
+	ERR_DEF_NOT_FOUND:                    "Not Found",
+	ERR_DEF_PERMISSION_DENIED:            "Permission Denied",
+	ERR_TMP_RATE_LIMIT_EXCEEDED:          "Rate Limit Exceeded",
+	ERR_TMP_TIMEOUT:                      "Timeout",
+	ERR_TMP_SERVICE_UNAVAILABLE:          "Service Unavailable",
+	ERR_DEF_INVALID_UPSERT:               "Invalid Upsert",
+	ERR_DEF_INVALID_DATE:                 "Invalid Date",
+	ERR_DEF_INVALID_REQUESTS:             "Invalid Requests",
+	ERR_DEF_API_UNAVAILABLE:              "API Unavailable",
+	ERR_DEF_UNABLED_START_PROCESS:        "Process start is disabled",
+	ERR_DEF_CANT_INSERT_IN_DATAWAREHOUSE: "Can't insert in Datawarehouse",
 }
 
 func ParseQErrorCode(val interface{}) (QErrorCode, bool) {
