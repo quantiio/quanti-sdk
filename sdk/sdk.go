@@ -394,15 +394,16 @@ func GetDateRange(config ConfigFile) ([]time.Time, error) {
 }
 
 // #region GetRequests
+
 // #region GetRequests
 func GetRequests(config ConfigFile) ([]Request, error) {
-	// Marshal le contenu de ConnectorConf en JSON brut
+	// 1) Marshal le contenu de ConnectorConf en JSON brut (tolérant aux types)
 	b, err := json.Marshal(config.ConnectorConf)
 	if err != nil {
 		return nil, fmt.Errorf("marshal ConnectorConf: %w", err)
 	}
 
-	// On parse dans un map pour accéder à "requests" ou "request"
+	// 2) Parse dans un map pour accéder à "requests" et/ou "request"
 	var confMap map[string]interface{}
 	if err := json.Unmarshal(b, &confMap); err != nil {
 		return nil, fmt.Errorf("unmarshal confMap: %w", err)
@@ -410,17 +411,20 @@ func GetRequests(config ConfigFile) ([]Request, error) {
 
 	var result []Request
 
-	// Helper pour parser un item (même structure que dans le tableau "requests")
+	// parse un item qui peut être:
+	//  - wrapper: {"connectorsaccountrequest": {...}, "request": {...?}}
+	//  - legacy direct: {...} (considéré comme "connectorsaccountrequest" directement)
 	processOne := func(item interface{}) error {
 		reqMap, ok := item.(map[string]interface{})
-		if !ok {
-			// on ignore silencieusement les formats inattendus
+		if !ok || reqMap == nil {
+			// Format inattendu → ignore
 			return nil
 		}
 
-		// On parse "connectorsaccountrequest" typé
+		// --- ConnectorsAccountRequest (wrappé ou non)
 		caraw, hasCAR := reqMap["connectorsaccountrequest"]
 		if !hasCAR {
+			// rétro-compat: l'item est directement le payload du ConnectorsAccountRequest
 			caraw = reqMap
 		}
 
@@ -428,20 +432,23 @@ func GetRequests(config ConfigFile) ([]Request, error) {
 		if err != nil {
 			return fmt.Errorf("marshal connectorsaccountrequest: %w", err)
 		}
+
 		var caReq ConnectorsAccountRequest
 		if err := json.Unmarshal(carBytes, &caReq); err != nil {
 			return fmt.Errorf("unmarshal connectorsaccountrequest: %w", err)
 		}
 
-		// Filtrage du statut
+		// --- Filtrage statut
 		if !(caReq.Status > REQUEST_STATUS_DISABLED && caReq.Status < REQUEST_STATUS_ERROR) {
-			return nil // on exclut cette requête
+			// Exclut la requête si en dehors de la plage souhaitée
+			return nil
 		}
 
-		// Récupérer le sous-objet "request" si présent
+		// --- Payload "request" brut optionnel dans le wrapper
 		var subRequest interface{}
-		if reqField, ok := reqMap["request"]; ok {
-			subRequest = reqField
+		if raw, ok := reqMap["request"]; ok {
+			// on laisse tel quel (map, slice, etc.)
+			subRequest = raw
 		}
 
 		result = append(result, Request{
@@ -451,20 +458,20 @@ func GetRequests(config ConfigFile) ([]Request, error) {
 		return nil
 	}
 
-	// 1) Cas "requests": tableau
+	// 3) Cas "requests": tableau de wrappers (ou d'items legacy)
 	if reqsRaw, ok := confMap["requests"]; ok && reqsRaw != nil {
-		reqsList, ok := reqsRaw.([]interface{})
-		if !ok {
-			return nil, fmt.Errorf("requests is not a list")
-		}
-		for _, it := range reqsList {
-			if err := processOne(it); err != nil {
-				return nil, err
+		if reqsList, ok := reqsRaw.([]interface{}); ok {
+			for _, it := range reqsList {
+				if err := processOne(it); err != nil {
+					return nil, err
+				}
 			}
+		} else {
+			return nil, fmt.Errorf("requests is not a list")
 		}
 	}
 
-	// 2) Cas "request": un seul objet (identique aux enfants du tableau "requests")
+	// 4) Cas "request": wrapper singulier (nouvelle structure)
 	if singleRaw, ok := confMap["request"]; ok && singleRaw != nil {
 		if err := processOne(singleRaw); err != nil {
 			return nil, err
@@ -473,7 +480,6 @@ func GetRequests(config ConfigFile) ([]Request, error) {
 
 	Infof("Nombre de requêtes récupérées: %d", len(result))
 
-	// Si ni "requests" ni "request" n'étaient présents (ou rien de valide), on renvoie (nil, nil) comme avant
 	if len(result) == 0 {
 		return nil, nil
 	}
