@@ -517,25 +517,29 @@ func GetRequestsByDate(config ConfigFile, state map[string]string) ([]RequestByD
 	if !hasDate && !hasRequestId {
 		// On ajoute d'abord les dimensions sans date
 		for _, request := range requests {
+
 			if request.ConnectorsAccountRequest.IsDimension {
 				requestByDate = append(requestByDate, RequestByDate{
 					Date:    nil,
 					Request: request,
 				})
-			}
-		}
-		// Puis les autres requêtes pour toutes les dates
-		for _, date := range dates {
-			for _, request := range requests {
-				if request.ConnectorsAccountRequest.IsDimension {
-					continue
+			} else {
+
+				for _, date := range dates {
+					for _, request := range requests {
+						if request.ConnectorsAccountRequest.IsDimension {
+							continue
+						}
+						requestByDate = append(requestByDate, RequestByDate{
+							Date:    &date,
+							Request: request,
+						})
+					}
 				}
-				requestByDate = append(requestByDate, RequestByDate{
-					Date:    &date,
-					Request: request,
-				})
 			}
+
 		}
+
 		return requestByDate, nil
 	}
 
