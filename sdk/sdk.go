@@ -490,139 +490,117 @@ type RequestByDate struct {
 }
 
 func GetRequestsByDate(config ConfigFile, state map[string]string) ([]RequestByDate, error) {
-	var requestByDate []RequestByDate
+	var out []RequestByDate
 
 	requests, err := GetRequests(config)
 	if err != nil {
 		return nil, fmt.Errorf("get requests: %w", err)
 	}
-
 	dates, err := GetDateRange(config)
 	if err != nil {
 		return nil, fmt.Errorf("get date range: %w", err)
 	}
 
 	stateDate, hasDate := state["date"]
-	stateRequestId, hasRequestId := state["requestId"]
-
+	stateRequestID, hasReq := state["requestId"]
 	if stateDate == "" {
 		hasDate = false
 	}
-
-	if stateRequestId == "" {
-		hasRequestId = false
+	if stateRequestID == "" {
+		hasReq = false
 	}
 
-	// Cas 1: Aucun filtre, on prend tout
-	if !hasDate && !hasRequestId {
-		// On ajoute d'abord les dimensions sans date
-		for _, request := range requests {
+	emit := func(req Request, t *time.Time) {
+		out = append(out, RequestByDate{Date: t, Request: req})
+	}
 
-			if request.ConnectorsAccountRequest.IsDimension {
-				requestByDate = append(requestByDate, RequestByDate{
-					Date:    nil,
-					Request: request,
-				})
-			} else {
-
-				for _, date := range dates {
-					for _, request := range requests {
-						if request.ConnectorsAccountRequest.IsDimension {
-							continue
-						}
-						requestByDate = append(requestByDate, RequestByDate{
-							Date:    &date,
-							Request: request,
-						})
-					}
-				}
+	// --- Cas 1: aucun filtre → respecter l'ordre des requêtes
+	if !hasDate && !hasReq {
+		for _, req := range requests {
+			if req.ConnectorsAccountRequest.IsDimension {
+				emit(req, nil)
+				continue
 			}
-
+			for _, dt := range dates {
+				d := dt // copie pour adresse sûre
+				emit(req, &d)
+			}
 		}
-
-		return requestByDate, nil
+		return out, nil
 	}
 
-	// Cas 2: date présente
-	if hasDate && stateDate != "" {
+	// --- Cas 2: filtre par date (et éventuellement requestId) → ordre par requête
+	if hasDate {
 		filterDate, err := parseDate(stateDate)
 		if err != nil {
 			return nil, fmt.Errorf("invalid date in state[\"date\"]: %w", err)
 		}
-		foundDate := false
-		foundReq := false
 
-		for _, date := range dates {
-			if !foundDate {
-				// On saute tant qu'on n'a pas atteint la date cible
-				if date.Before(filterDate) {
-					continue
-				}
-				if date.Equal(filterDate) {
-					foundDate = true
-				} else {
-					continue
-				}
-			}
-
-			for _, request := range requests {
-				if request.ConnectorsAccountRequest.IsDimension {
-					continue // exclure dimensions
-				}
-
-				if foundDate && hasRequestId && stateRequestId != "" {
-					// Pour la première date, ne commencer qu'à la bonne requestId
-					if !foundReq && date.Equal(filterDate) {
-						if request.ConnectorsAccountRequest.ID != stateRequestId {
-							continue
-						}
-						foundReq = true
-					}
-				}
-				// À partir d'ici, foundDate = true, foundReq = true (ou pas de filtre sur requestId)
-				requestByDate = append(requestByDate, RequestByDate{
-					Date:    &date,
-					Request: request,
-				})
-			}
-			// Après la date cible, plus de filtre sur requestId
-			foundReq = true
-		}
-		return requestByDate, nil
-	}
-
-	// Cas 3: Pas de date, mais requestId présent (on prend tout à partir de cette requestId, dimensions exclues AVANT)
-	if hasRequestId && stateRequestId != "" {
-		found := false
-		// On ajoute les dimensions jusqu'à la bonne requestId (exclues avant)
-		for _, request := range requests {
-			if request.ConnectorsAccountRequest.IsDimension {
-				if found {
-					requestByDate = append(requestByDate, RequestByDate{
-						Date:    nil,
-						Request: request,
-					})
-				}
+		startedReq := !hasReq // si pas de filtre reqId, on a "déjà démarré"
+		for _, req := range requests {
+			// Par design d’origine: on exclut les dimensions en mode "date"
+			if req.ConnectorsAccountRequest.IsDimension {
 				continue
 			}
-			// Pour chaque date, on applique le filtre
-			for _, date := range dates {
-				if !found {
-					if request.ConnectorsAccountRequest.ID != stateRequestId {
+
+			// Si on doit démarrer à une request précise, attendre de la croiser
+			if hasReq && !startedReq {
+				if req.ConnectorsAccountRequest.ID != stateRequestID {
+					continue
+				}
+				startedReq = true
+			}
+
+			// Pour la première requête (si on démarre pile au milieu), on ne prend que les dates >= filterDate.
+			// Pour les suivantes, on prend toutes les dates (ça respecte la logique "à partir de ...").
+			for _, dt := range dates {
+				if !startedReq {
+					// si on n'a pas encore atteint la bonne reqId (théoriquement impossible ici),
+					// on continue; sécurité défensive
+					continue
+				}
+				if len(out) == 0 {
+					// première date/req émise : appliquer la contrainte date >= filterDate
+					if dt.Before(filterDate) {
 						continue
 					}
-					found = true
+				} else {
+					// après la toute première émission, plus de contrainte de "rattrapage"
+					// (les dates sont toutes bonnes à prendre)
 				}
-				requestByDate = append(requestByDate, RequestByDate{
-					Date:    &date,
-					Request: request,
-				})
+				d := dt
+				emit(req, &d)
 			}
 		}
-		return requestByDate, nil
+		return out, nil
 	}
 
-	return requestByDate, nil
+	// --- Cas 3: pas de date, mais requestId → ordre par requête
+	if hasReq {
+		started := false
+		for _, req := range requests {
+			if !started {
+				if req.ConnectorsAccountRequest.ID != stateRequestID {
+					continue
+				}
+				started = true
+			}
+
+			if req.ConnectorsAccountRequest.IsDimension {
+				// D’après ta logique: n’émettre les dimensions qu’APRÈS être entré dans la fenêtre
+				emit(req, nil)
+				continue
+			}
+
+			for _, dt := range dates {
+				d := dt
+				emit(req, &d)
+			}
+		}
+		return out, nil
+	}
+
+	return out, nil
 }
 
 func parseDate(dateStr string) (time.Time, error) {
