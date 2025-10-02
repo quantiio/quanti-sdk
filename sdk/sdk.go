@@ -53,10 +53,8 @@ func Process(processFunc func(ConfigFile, map[string]string, map[string]interfac
 		return fmt.Errorf("erreur lors du chargement de %s : %v", *statePath, err)
 	}
 
-	credentials, err := loadCredentialsFromFile(*credentialsPath)
-	if err != nil {
-		return fmt.Errorf("erreur lors du chargement de %s : %v", *credentialsPath, err)
-	}
+	// Charger les credentials depuis le fichier spécifié, optionnel, peut être absent
+	credentials, _ := loadCredentialsFromFile(*credentialsPath)
 
 	if DebugMode {
 		Debug()
