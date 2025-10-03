@@ -741,3 +741,19 @@ func GetRequestsByDate(config ConfigFile, state map[string]string) ([]RequestByD
 func parseDate(dateStr string) (time.Time, error) {
 	return time.Parse("2006-01-02", dateStr)
 }
+
+func DumpToFile(path string, data any) error {
+	if DebugMode {
+		file, err := os.Create(path)
+		if err != nil {
+			return fmt.Errorf("error creating file: %w", err)
+		}
+		defer file.Close()
+		enc := json.NewEncoder(file)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(data); err != nil {
+			return fmt.Errorf("error writing JSON to file: %w", err)
+		}
+	}
+	return nil
+}
