@@ -1,5 +1,7 @@
 package sdk
 
+import "time"
+
 type MsgType string
 
 type UpsertMsg struct {
@@ -43,6 +45,7 @@ type ConfigFile struct {
 	PersonnalCredentials map[string]interface{} `json:"personnalCredentials"`
 	ConnectorCredentials map[string]interface{} `json:"connectorCredentials"`
 	ConnectorConf        interface{}            `json:"connectorConf"`
+	AdAccounts           []AdAccount            `json:"adAccounts"`
 	RequestParams        RequestParams          `json:"requestParams"`
 }
 
@@ -92,4 +95,23 @@ type ConnectorsAccountRequest struct {
 type Request struct {
 	ConnectorsAccountRequest ConnectorsAccountRequest `json:"connectorsaccountrequest"`
 	Request                  interface{}              `json:"request,omitempty"`
+}
+
+type connectorConfForDecode struct {
+	AdAccounts []AdAccount   `json:"adaccounts"`
+	Requests   []interface{} `json:"requests"`
+	Request    interface{}   `json:"request"`
+}
+
+type AdAccount struct {
+	AccountID string `json:"account_id"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+}
+
+type RequestByDateAndAdAccount struct {
+	Date        *time.Time
+	Request     Request
+	AdAccountID string     // l’identifiant « opérationnel » choisi (account_id ou id)
+	AdAccount   *AdAccount // pointeur pour conserver le label (Name, etc.) si dispo
 }

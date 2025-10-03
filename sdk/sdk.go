@@ -479,7 +479,143 @@ func GetRequests(config ConfigFile) ([]Request, error) {
 	return result, nil
 }
 
-// #endregion
+// #region GetAdAccounts
+func GetAdAccounts(config ConfigFile) ([]AdAccount, error) {
+	data, err := json.Marshal(config.ConnectorConf)
+	if err != nil {
+		return nil, fmt.Errorf("marshal ConnectorConf: %w", err)
+	}
+	var conf connectorConfForDecode
+	if err := json.Unmarshal(data, &conf); err != nil {
+		return nil, fmt.Errorf("unmarshal ConnectorConf: %w", err)
+	}
+	return conf.AdAccounts, nil
+}
+
+// #region normalizeAdAccountID
+func normalizeAdAccountID(a AdAccount) string {
+	if a.AccountID != "" {
+		return a.AccountID
+	}
+	if a.ID != "" {
+		return a.ID
+	}
+	return ""
+}
+
+// #region extractAdAccountFromLooseMap
+func extractAdAccountFromLooseMap(m map[string]interface{}) (string, bool) {
+	candidates := []string{
+		"adaccount", "adAccount", "ad_account",
+		"adaccount_id", "adAccountId", "ad_account_id",
+		"account_id", "accountId",
+		"id", // parfois l’ID d’adaccount est simplement "id" dans le scope
+	}
+	for _, k := range candidates {
+		if v, ok := m[k]; ok && v != nil {
+			if s, ok := v.(string); ok && s != "" {
+				return s, true
+			}
+		}
+	}
+	return "", false
+}
+
+func extractExplicitAdAccountID(req Request) (string, bool) {
+	// 1) Inspecte le sous-objet Request libre
+	if req.Request != nil {
+		if mm, ok := req.Request.(map[string]interface{}); ok {
+			if id, ok := extractAdAccountFromLooseMap(mm); ok {
+				return id, true
+			}
+		}
+	}
+
+	// 2) Inspecte le ConnectorsAccountRequest en mode « map » (via JSON)
+	if !isZeroConnectorsAccountRequest(req.ConnectorsAccountRequest) {
+		b, _ := json.Marshal(req.ConnectorsAccountRequest)
+		var mm map[string]interface{}
+		if err := json.Unmarshal(b, &mm); err == nil {
+			if id, ok := extractAdAccountFromLooseMap(mm); ok {
+				return id, true
+			}
+		}
+	}
+
+	return "", false
+}
+
+func GetRequestsByDateAndAdAccounts(config ConfigFile, state map[string]string) ([]RequestByDateAndAdAccount, error) {
+	// 1) On récupère le séquencement (date × requête) depuis ta fonction existante
+	requestsByDate, err := GetRequestsByDate(config, state)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2) On charge les adaccounts (si l’attribut existe et non vide dans connectorConf)
+	adAccounts, err := GetAdAccounts(config)
+	if err != nil {
+		return nil, err
+	}
+
+	// On prépare une liste utilisable (ID opérationnel + struct pour le label)
+	type acctCarry struct {
+		ID  string
+		Obj AdAccount
+	}
+	var carry []acctCarry
+	for _, a := range adAccounts {
+		if id := normalizeAdAccountID(a); id != "" {
+			carry = append(carry, acctCarry{ID: id, Obj: a})
+		}
+	}
+
+	out := make([]RequestByDateAndAdAccount, 0, len(requestsByDate))
+
+	for _, rbd := range requestsByDate {
+		// a) La requête cible-t-elle explicitement 1 adaccount ?
+		if explicitID, ok := extractExplicitAdAccountID(rbd.Request); ok && explicitID != "" {
+			out = append(out, RequestByDateAndAdAccount{
+				Date:        rbd.Date,
+				Request:     rbd.Request,
+				AdAccountID: explicitID,
+				AdAccount:   nil, // on ne résout pas forcément l’objet ici (coût inutile)
+			})
+			continue
+		}
+
+		// b) Sinon, si la config fournit des adaccounts non vides, on multiplie
+		if len(carry) > 0 {
+			for _, ac := range carry {
+				// NOTE: on injecte le pointeur pour garder Name si nécessaire en aval
+				acCopy := ac.Obj
+				out = append(out, RequestByDateAndAdAccount{
+					Date:        rbd.Date,
+					Request:     rbd.Request,
+					AdAccountID: ac.ID,
+					AdAccount:   &acCopy,
+				})
+			}
+			continue
+		}
+
+		// c) Sinon, on garde une entrée « sans adaccount » (comportement rétro-compatible)
+		out = append(out, RequestByDateAndAdAccount{
+			Date:        rbd.Date,
+			Request:     rbd.Request,
+			AdAccountID: "",
+			AdAccount:   nil,
+		})
+	}
+
+	Infof("Mix (date × requête × adaccount): %d entrées produites", len(out))
+	return out, nil
+}
+
+func isZeroConnectorsAccountRequest(ca ConnectorsAccountRequest) bool {
+	b, _ := json.Marshal(ca)
+	return string(b) == "{}"
+}
 
 // #region GetRequestsByDate
 type RequestByDate struct {
