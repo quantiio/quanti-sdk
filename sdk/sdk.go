@@ -744,6 +744,11 @@ func parseDate(dateStr string) (time.Time, error) {
 
 func DumpToFile(path string, data any) error {
 	if DebugMode {
+		// Ajouter l'extension .json si elle n'est pas présente
+		if !strings.HasSuffix(strings.ToLower(path), ".json") {
+			path = path + ".json"
+		}
+
 		file, err := os.Create(path)
 		if err != nil {
 			return fmt.Errorf("error creating file: %w", err)
