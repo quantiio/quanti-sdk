@@ -509,7 +509,7 @@ func extractAdAccountFromLooseMap(m map[string]interface{}) (string, bool) {
 		"adaccount", "adAccount", "ad_account",
 		"adaccount_id", "adAccountId", "ad_account_id",
 		"account_id", "accountId",
-		"id", // parfois l’ID d’adaccount est simplement "id" dans le scope
+		// !! NE PAS inclure "id" ici !!
 	}
 	for _, k := range candidates {
 		if v, ok := m[k]; ok && v != nil {
@@ -530,8 +530,7 @@ func extractExplicitAdAccountID(req Request) (string, bool) {
 			}
 		}
 	}
-
-	// 2) Inspecte le ConnectorsAccountRequest en mode « map » (via JSON)
+	// 2) Inspecte ConnectorsAccountRequest en mode map (via JSON) pour y lire une clé adaccount si elle existe
 	if !isZeroConnectorsAccountRequest(req.ConnectorsAccountRequest) {
 		b, _ := json.Marshal(req.ConnectorsAccountRequest)
 		var mm map[string]interface{}
@@ -541,24 +540,22 @@ func extractExplicitAdAccountID(req Request) (string, bool) {
 			}
 		}
 	}
-
 	return "", false
 }
 
+// #region GetRequestsByDateAndAdAccounts
 func GetRequestsByDateAndAdAccounts(config ConfigFile, state map[string]string) ([]RequestByDateAndAdAccount, error) {
-	// 1) On récupère le séquencement (date × requête) depuis ta fonction existante
+	// a) date × requête (ta fonction existante)
 	requestsByDate, err := GetRequestsByDate(config, state)
 	if err != nil {
 		return nil, err
 	}
 
-	// 2) On charge les adaccounts (si l’attribut existe et non vide dans connectorConf)
+	// b) adaccounts
 	adAccounts, err := GetAdAccounts(config)
 	if err != nil {
 		return nil, err
 	}
-
-	// On prépare une liste utilisable (ID opérationnel + struct pour le label)
 	type acctCarry struct {
 		ID  string
 		Obj AdAccount
@@ -573,42 +570,46 @@ func GetRequestsByDateAndAdAccounts(config ConfigFile, state map[string]string) 
 	out := make([]RequestByDateAndAdAccount, 0, len(requestsByDate))
 
 	for _, rbd := range requestsByDate {
-		// a) La requête cible-t-elle explicitement 1 adaccount ?
 		if explicitID, ok := extractExplicitAdAccountID(rbd.Request); ok && explicitID != "" {
+			// Essaie d’associer l’objet pour avoir name etc.
+			var ptr *AdAccount
+			for _, c := range carry {
+				if c.ID == explicitID {
+					acCopy := c.Obj
+					ptr = &acCopy
+					break
+				}
+			}
 			out = append(out, RequestByDateAndAdAccount{
 				Date:        rbd.Date,
 				Request:     rbd.Request,
 				AdAccountID: explicitID,
-				AdAccount:   nil, // on ne résout pas forcément l’objet ici (coût inutile)
+				AdAccount:   ptr, // peut rester nil si non trouvé en config
 			})
 			continue
 		}
 
-		// b) Sinon, si la config fournit des adaccounts non vides, on multiplie
 		if len(carry) > 0 {
-			for _, ac := range carry {
-				// NOTE: on injecte le pointeur pour garder Name si nécessaire en aval
-				acCopy := ac.Obj
+			for _, c := range carry {
+				acCopy := c.Obj
 				out = append(out, RequestByDateAndAdAccount{
 					Date:        rbd.Date,
 					Request:     rbd.Request,
-					AdAccountID: ac.ID,
+					AdAccountID: c.ID,
 					AdAccount:   &acCopy,
 				})
 			}
-			continue
+		} else {
+			// fallback rétro-compatible
+			out = append(out, RequestByDateAndAdAccount{
+				Date:        rbd.Date,
+				Request:     rbd.Request,
+				AdAccountID: "",
+				AdAccount:   nil,
+			})
 		}
-
-		// c) Sinon, on garde une entrée « sans adaccount » (comportement rétro-compatible)
-		out = append(out, RequestByDateAndAdAccount{
-			Date:        rbd.Date,
-			Request:     rbd.Request,
-			AdAccountID: "",
-			AdAccount:   nil,
-		})
 	}
 
-	Infof("Mix (date × requête × adaccount): %d entrées produites", len(out))
 	return out, nil
 }
 

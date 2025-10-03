@@ -110,8 +110,8 @@ type AdAccount struct {
 }
 
 type RequestByDateAndAdAccount struct {
-	Date        *time.Time
-	Request     Request
-	AdAccountID string     // l’identifiant « opérationnel » choisi (account_id ou id)
-	AdAccount   *AdAccount // pointeur pour conserver le label (Name, etc.) si dispo
+	Date        *time.Time `json:"date,omitempty"`
+	Request     Request    `json:"request"`
+	AdAccountID string     `json:"adAccountId,omitempty"`
+	AdAccount   *AdAccount `json:"adAccount,omitempty"`
 }
