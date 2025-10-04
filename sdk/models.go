@@ -9,6 +9,8 @@ type UpsertMsg struct {
 	ID        string  `json:"id"`
 	AdAccount string  `json:"ad_account"`
 	RequestId string  `json:"request_id"`
+	ParentId  string  `json:"parent_id"`
+	ChildId   string  `json:"child_id"`
 	Message   string  `json:"message"`
 	Date      string  `json:"date"`
 }
