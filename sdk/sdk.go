@@ -182,6 +182,13 @@ func Error(err QError) {
 		"err":     err.Err,
 	})
 }
+func Fatal(err QError) {
+	Log("fatal", err.Error(), map[string]interface{}{
+		"code":    err.Code,
+		"message": err.Message,
+		"err":     err.Err,
+	})
+}
 func DebugLog(msg string) {
 	Log("debug", msg, nil)
 }
