@@ -30,6 +30,17 @@ type CheckpointMsg struct {
 	Timestamp string            `json:"timestamp"`
 }
 
+type PlantMsg struct {
+	Type MsgType `json:"type"`
+	Plan []Plan  `json:"msg"`
+}
+
+type Plan struct {
+	RequestId string `json:"requestId"`
+	Date      string `json:"date"`
+	AccountId string `json:"accountId"`
+}
+
 type CredentialsMsg struct {
 	Type        MsgType                `json:"type"`
 	Credentials map[string]interface{} `json:"credentials"`

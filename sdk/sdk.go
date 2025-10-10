@@ -25,6 +25,7 @@ const (
 	MsgTypeProcessed   = "processed"
 	MsgTypeLog         = "log"
 	MsgTypeCheckpoint  = "checkpoint"
+	MsgTypePlan        = "plan"
 )
 
 // #region Debug
@@ -619,6 +620,34 @@ func GetRequestsByDateAndAdAccounts(config ConfigFile, state map[string]string) 
 				AdAccount:   nil,
 			})
 		}
+	}
+
+	//Ici sortir le schema pour être préparé à upserter
+	lst := make([]Plan, 0, len(out))
+	for _, it := range out {
+
+		date := "dimension"
+		if it.Date != nil {
+			date = it.Date.Format("2006-01-02")
+		}
+
+		lst = append(lst, Plan{
+			RequestId: it.Request.ConnectorsAccountRequest.ID,
+			Date:      date,
+			AccountId: it.AdAccountID,
+		})
+	}
+
+	if !DebugMode {
+
+		entry := PlantMsg{
+			Type: MsgTypePlan,
+			Plan: lst,
+		}
+		out, _ := json.Marshal(entry)
+
+		fmt.Println(string(out))
+
 	}
 
 	return out, nil
