@@ -60,6 +60,7 @@ type ConfigFile struct {
 	ConnectorConf        interface{}            `json:"connectorConf"`
 	AdAccounts           []AdAccount            `json:"adAccounts"`
 	RequestParams        RequestParams          `json:"requestParams"`
+	ProcessId            string                 `json:"processId"`
 }
 
 // #region Requests
