@@ -27,6 +27,7 @@ const (
 	ERR_DEF_API_UNAVAILABLE              QErrorCode = 1090
 	ERR_DEF_UNABLED_START_PROCESS        QErrorCode = 1100
 	ERR_DEF_CANT_INSERT_IN_DATAWAREHOUSE QErrorCode = 1200
+	ERR_DEF_CANT_PROCESS                 QErrorCode = 1210
 	//Tmp error codes
 	ERR_TMP_RATE_LIMIT_EXCEEDED QErrorCode = 2000
 	ERR_TMP_TIMEOUT             QErrorCode = 2010
