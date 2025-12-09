@@ -506,11 +506,11 @@ func GetAdAccounts(config ConfigFile) ([]AdAccount, error) {
 
 // #region normalizeAdAccountID
 func normalizeAdAccountID(a AdAccount) string {
-	if a.AccountID != "" {
-		return a.AccountID
-	}
 	if a.ID != "" {
 		return a.ID
+	}
+	if a.AccountID != "" {
+		return a.AccountID
 	}
 	return ""
 }
