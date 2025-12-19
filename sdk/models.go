@@ -36,9 +36,10 @@ type PlantMsg struct {
 }
 
 type Plan struct {
-	RequestId string `json:"requestId"`
-	Date      string `json:"date"`
-	AccountId string `json:"accountId"`
+	RequestId      string `json:"requestId"`
+	Date           string `json:"date"`
+	AccountId      string `json:"accountId"`
+	AccountChildId string `json:"accountChildId,omitempty"` // ID enfant si différent de AccountId (ex: propertyId GA4)
 }
 
 type CredentialsMsg struct {
@@ -83,6 +84,13 @@ type DatabaseMetaData struct {
 	QuantiField  bool   `json:"quantiField"`
 	QuantiId     bool   `json:"quantiId"`
 	Type         string `json:"type"`
+
+	// Enrichissements IA (optionnels, rétro-compatibles)
+	Purpose      string `json:"purpose,omitempty"`       // À quoi ça sert
+	BusinessName string `json:"business_name,omitempty"` // Nom métier (ex: "Dépenses")
+	SemanticType string `json:"semantic_type,omitempty"` // id, dimension, metric, date, currency_micro
+	FormatHint   string `json:"format_hint,omitempty"`   // divide_1000000, percentage
+	IsPII        bool   `json:"is_pii,omitempty"`        // Donnée personnelle identifiable
 }
 
 type OrderedField struct {
@@ -104,12 +112,39 @@ type ConnectorsAccountRequest struct {
 	Name        string         `json:"name"`
 	Schema      Schema         `json:"schema"`
 	Status      Request_status `json:"status"`
+
+	// Enrichissements IA (optionnels, rétro-compatibles)
+	Purpose         string   `json:"purpose,omitempty"`          // À quoi ça sert
+	BusinessDomain  string   `json:"business_domain,omitempty"`  // performance, attribution, acquisition
+	Grain           string   `json:"grain,omitempty"`            // daily, event, snapshot
+	SampleQuestions []string `json:"sample_questions,omitempty"` // Questions types pour le RAG
 }
 
 type Request struct {
 	ConnectorsAccountRequest ConnectorsAccountRequest `json:"connectorsaccountrequest"`
 	Request                  interface{}              `json:"request,omitempty"`
 }
+
+// #region Enriched Prebuilds (pour Quanti AI)
+
+// ConnectorInfo contient les métadonnées du connecteur pour l'enrichissement IA
+type ConnectorInfo struct {
+	SKU         string `json:"sku"`                   // Identifiant technique (google_ads, meta_ads)
+	Name        string `json:"name"`                  // Nom affiché (Google Ads)
+	Category    string `json:"category"`              // marketing, analytics, business, custom
+	Description string `json:"description,omitempty"` // Qu'est-ce que c'est
+	Purpose     string `json:"purpose,omitempty"`     // À quoi ça sert
+}
+
+// EnrichedPrebuildsFile représente le fichier prebuilds.json enrichi avec wrapper connecteur
+// Structure : { "connector": {...}, "prebuilds": [...] }
+// Rétro-compatible : si "connector" est absent, c'est un ancien fichier (array direct)
+type EnrichedPrebuildsFile struct {
+	Connector *ConnectorInfo `json:"connector,omitempty"`
+	Prebuilds []Request      `json:"prebuilds,omitempty"`
+}
+
+// #endregion
 
 type connectorConfForDecode struct {
 	AdAccounts []AdAccount   `json:"adaccounts"`
@@ -124,8 +159,9 @@ type AdAccount struct {
 }
 
 type RequestByDateAndAdAccount struct {
-	Date        *time.Time `json:"date,omitempty"`
-	Request     Request    `json:"request"`
-	AdAccountID string     `json:"adAccountId,omitempty"`
-	AdAccount   *AdAccount `json:"adAccount,omitempty"`
+	Date             *time.Time `json:"date,omitempty"`
+	Request          Request    `json:"request"`
+	AdAccountID      string     `json:"adAccountId,omitempty"`
+	AdAccountChildID string     `json:"adAccountChildId,omitempty"` // ID enfant (ex: propertyId GA4) si différent de AdAccountID
+	AdAccount        *AdAccount `json:"adAccount,omitempty"`
 }

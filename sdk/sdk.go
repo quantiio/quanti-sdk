@@ -569,13 +569,21 @@ func GetRequestsByDateAndAdAccounts(config ConfigFile, state map[string]string) 
 		return nil, err
 	}
 	type acctCarry struct {
-		ID  string
-		Obj AdAccount
+		ID      string // ID principal (pour les logs/tracking)
+		ChildID string // ID enfant si différent (ex: propertyId GA4)
+		Obj     AdAccount
 	}
 	var carry []acctCarry
 	for _, a := range adAccounts {
 		if id := normalizeAdAccountID(a); id != "" {
-			carry = append(carry, acctCarry{ID: id, Obj: a})
+			childID := ""
+			// Si AccountID et ID sont tous deux présents et différents,
+			// utiliser AccountID comme parent et ID comme enfant (cas GA4)
+			if a.AccountID != "" && a.ID != "" && a.AccountID != a.ID {
+				carry = append(carry, acctCarry{ID: a.AccountID, ChildID: a.ID, Obj: a})
+			} else {
+				carry = append(carry, acctCarry{ID: id, ChildID: childID, Obj: a})
+			}
 		}
 	}
 
@@ -583,20 +591,23 @@ func GetRequestsByDateAndAdAccounts(config ConfigFile, state map[string]string) 
 
 	for _, rbd := range requestsByDate {
 		if explicitID, ok := extractExplicitAdAccountID(rbd.Request); ok && explicitID != "" {
-			// Essaie d’associer l’objet pour avoir name etc.
+			// Essaie d'associer l'objet pour avoir name etc.
 			var ptr *AdAccount
+			childID := ""
 			for _, c := range carry {
 				if c.ID == explicitID {
 					acCopy := c.Obj
 					ptr = &acCopy
+					childID = c.ChildID
 					break
 				}
 			}
 			out = append(out, RequestByDateAndAdAccount{
-				Date:        rbd.Date,
-				Request:     rbd.Request,
-				AdAccountID: explicitID,
-				AdAccount:   ptr, // peut rester nil si non trouvé en config
+				Date:             rbd.Date,
+				Request:          rbd.Request,
+				AdAccountID:      explicitID,
+				AdAccountChildID: childID,
+				AdAccount:        ptr, // peut rester nil si non trouvé en config
 			})
 			continue
 		}
@@ -605,10 +616,11 @@ func GetRequestsByDateAndAdAccounts(config ConfigFile, state map[string]string) 
 			for _, c := range carry {
 				acCopy := c.Obj
 				out = append(out, RequestByDateAndAdAccount{
-					Date:        rbd.Date,
-					Request:     rbd.Request,
-					AdAccountID: c.ID,
-					AdAccount:   &acCopy,
+					Date:             rbd.Date,
+					Request:          rbd.Request,
+					AdAccountID:      c.ID,
+					AdAccountChildID: c.ChildID,
+					AdAccount:        &acCopy,
 				})
 			}
 		} else {
@@ -632,9 +644,10 @@ func GetRequestsByDateAndAdAccounts(config ConfigFile, state map[string]string) 
 		}
 
 		lst = append(lst, Plan{
-			RequestId: it.Request.ConnectorsAccountRequest.ID,
-			Date:      date,
-			AccountId: it.AdAccountID,
+			RequestId:      it.Request.ConnectorsAccountRequest.ID,
+			Date:           date,
+			AccountId:      it.AdAccountID,
+			AccountChildId: it.AdAccountChildID,
 		})
 	}
 
