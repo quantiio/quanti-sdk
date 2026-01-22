@@ -95,6 +95,7 @@ type DatabaseMetaData struct {
 
 type OrderedField struct {
 	DatabaseMetaData DatabaseMetaData `json:"databaseMetaData"`
+	FieldId          string           `json:"fieldId"`
 	FieldPath        string           `json:"fieldPath"`
 	FieldSrc         string           `json:"fieldSrc"`
 }
