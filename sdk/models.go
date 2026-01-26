@@ -23,11 +23,21 @@ type LogMsg struct {
 	Timestamp string                 `json:"timestamp"`
 }
 
+// ScopeFilter définit un filtre de scope pour les opérations MERGE/DELETE dans le datawarehouse.
+// Permet au connecteur de spécifier des conditions custom pour cibler les données à mettre à jour/supprimer.
+// Exemple: filtrer sur une plage de dates avec {Column: "_quanti_date", Op: ">=", Value: "2024-01-01"}
+type ScopeFilter struct {
+	Column string `json:"column"` // Nom de la colonne (ex: "_quanti_date", "campaign_id")
+	Op     string `json:"op"`     // Opérateur : "=", ">=", "<=", ">", "<", "!="
+	Value  string `json:"value"`  // Valeur à comparer
+}
+
 type CheckpointMsg struct {
-	Type      MsgType           `json:"type"`
-	State     map[string]string `json:"state"`
-	Error     *QError           `json:"error"`
-	Timestamp string            `json:"timestamp"`
+	Type         MsgType           `json:"type"`
+	State        map[string]string `json:"state"`
+	Error        *QError           `json:"error"`
+	Timestamp    string            `json:"timestamp"`
+	ScopeFilters []ScopeFilter     `json:"scope_filters,omitempty"` // Filtres custom pour MERGE/DELETE (surcharge le filtre par défaut sur _quanti_date)
 }
 
 type PlantMsg struct {
