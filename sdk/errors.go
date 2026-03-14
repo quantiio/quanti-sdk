@@ -28,6 +28,7 @@ const (
 	ERR_DEF_UNABLED_START_PROCESS        QErrorCode = 1100
 	ERR_DEF_CANT_INSERT_IN_DATAWAREHOUSE QErrorCode = 1200
 	ERR_DEF_PROCESSED_WITH_ERROR         QErrorCode = 1210
+	ERR_DEF_COST_LIMIT_EXCEEDED          QErrorCode = 1220
 	//Tmp error codes
 	ERR_TMP_RATE_LIMIT_EXCEEDED QErrorCode = 2000
 	ERR_TMP_TIMEOUT             QErrorCode = 2010
@@ -50,6 +51,7 @@ var errorCodeLabels = map[QErrorCode]string{
 	ERR_DEF_UNABLED_START_PROCESS:        "DEF",
 	ERR_DEF_CANT_INSERT_IN_DATAWAREHOUSE: "DEF",
 	ERR_DEF_PROCESSED_WITH_ERROR:         "DEF",
+	ERR_DEF_COST_LIMIT_EXCEEDED:          "DEF",
 }
 
 var ErrorCodes = map[QErrorCode]string{
@@ -68,6 +70,7 @@ var ErrorCodes = map[QErrorCode]string{
 	ERR_DEF_UNABLED_START_PROCESS:        "Process start is disabled",
 	ERR_DEF_CANT_INSERT_IN_DATAWAREHOUSE: "Can't insert in Datawarehouse",
 	ERR_DEF_PROCESSED_WITH_ERROR:         "Processed with error",
+	ERR_DEF_COST_LIMIT_EXCEEDED:          "Datawarehouse cost limit exceeded",
 }
 
 func ParseQErrorCode(val interface{}) (QErrorCode, bool) {
