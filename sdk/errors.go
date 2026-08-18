@@ -33,6 +33,12 @@ const (
 	ERR_TMP_RATE_LIMIT_EXCEEDED QErrorCode = 2000
 	ERR_TMP_TIMEOUT             QErrorCode = 2010
 	ERR_TMP_SERVICE_UNAVAILABLE QErrorCode = 2020
+	//Warn error codes: the third-party source explicitly reported that this
+	// data is out of scope for the client's account (subscription plan, OAuth
+	// scope, region...) — nothing to fix connector-side. Reserve this family
+	// for cases the source states outright; never for an ambiguous/unqualified
+	// error, or a real failure (e.g. revoked credentials) goes unnoticed.
+	ERR_WARN_ACCOUNT_LIMITATION QErrorCode = 3000
 )
 
 var errorCodeLabels = map[QErrorCode]string{
@@ -52,6 +58,7 @@ var errorCodeLabels = map[QErrorCode]string{
 	ERR_DEF_CANT_INSERT_IN_DATAWAREHOUSE: "DEF",
 	ERR_DEF_PROCESSED_WITH_ERROR:         "DEF",
 	ERR_DEF_COST_LIMIT_EXCEEDED:          "DEF",
+	ERR_WARN_ACCOUNT_LIMITATION:          "WARN",
 }
 
 var ErrorCodes = map[QErrorCode]string{
@@ -71,6 +78,7 @@ var ErrorCodes = map[QErrorCode]string{
 	ERR_DEF_CANT_INSERT_IN_DATAWAREHOUSE: "Can't insert in Datawarehouse",
 	ERR_DEF_PROCESSED_WITH_ERROR:         "Processed with error",
 	ERR_DEF_COST_LIMIT_EXCEEDED:          "Datawarehouse cost limit exceeded",
+	ERR_WARN_ACCOUNT_LIMITATION:          "Account limitation reported by the third-party source",
 }
 
 func ParseQErrorCode(val interface{}) (QErrorCode, bool) {
