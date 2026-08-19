@@ -64,9 +64,10 @@ type RequestConf struct {
 // #region OAuthCallbackParams
 // OAuthCallbackParams contains the OAuth callback parameters needed for token exchange
 type OAuthCallbackParams struct {
-	Code         string `json:"code"`
-	RedirectURI  string `json:"redirect_uri"`
-	CodeVerifier string `json:"code_verifier,omitempty"`
+	Code         string            `json:"code"`
+	RedirectURI  string            `json:"redirect_uri"`
+	CodeVerifier string            `json:"code_verifier,omitempty"`
+	Extra        map[string]string `json:"extra,omitempty"`
 }
 
 // #region TestRequestParams

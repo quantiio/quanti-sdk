@@ -392,10 +392,57 @@ func GetDateRange(config ConfigFile) ([]time.Time, error) {
 		currentDate = currentDate.AddDate(0, 0, 1) // Ajouter un jour
 	}
 
+	// Skip des dates hors fenêtre de rétention de la source (maxDays).
+	// Gated : ne s'active QUE si la conf déclare scheduling.history.maxDays > 0.
+	// Les connecteurs sans maxDays (ou =0/null) conservent le comportement actuel.
+	// Au-delà de la fenêtre, l'API source ne sert plus la donnée : on évite de
+	// jouer des requêtes vouées à échouer/renvoyer vide, en traçant le skip.
+	if maxDays := historyMaxDays(config.ConnectorConf); maxDays > 0 {
+		now := time.Now()
+		cutoff := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -maxDays)
+		kept := differences[:0]
+		skipped := 0
+		for _, d := range differences {
+			if d.Before(cutoff) {
+				skipped++
+				continue
+			}
+			kept = append(kept, d)
+		}
+		if skipped > 0 {
+			Warnf("Retention window (maxDays=%d): %d date(s) before %s skipped (outside source retention)", maxDays, skipped, cutoff.Format("2006-01-02"))
+		}
+		differences = kept
+	}
+
 	Infof("Date range: %d dates from %s to %s", len(differences), startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
 
 	return differences, nil
 
+}
+
+// historyMaxDays extrait scheduling.history.maxDays de la conf connecteur de
+// façon défensive : la conf est un interface{} (JSON brut), donc tout chemin
+// manquant, conf nil ou erreur de décodage renvoie 0 (= skip désactivé).
+func historyMaxDays(connectorConf interface{}) int {
+	if connectorConf == nil {
+		return 0
+	}
+	b, err := json.Marshal(connectorConf)
+	if err != nil {
+		return 0
+	}
+	var decoded struct {
+		Scheduling struct {
+			History struct {
+				MaxDays int `json:"maxDays"`
+			} `json:"history"`
+		} `json:"scheduling"`
+	}
+	if err := json.Unmarshal(b, &decoded); err != nil {
+		return 0
+	}
+	return decoded.Scheduling.History.MaxDays
 }
 
 // #region GetRequests

@@ -46,10 +46,11 @@ type OAuthCallbackResponse struct {
 // #region OAuthCredentialsResult
 // OAuthCredentialsResult contains the OAuth tokens returned by the proc
 type OAuthCredentialsResult struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-	TokenType    string `json:"token_type,omitempty"`
-	ExpiresAt    string `json:"expires_at,omitempty"`
+	AccessToken  string            `json:"access_token"`
+	RefreshToken string            `json:"refresh_token,omitempty"`
+	TokenType    string            `json:"token_type,omitempty"`
+	ExpiresAt    string            `json:"expires_at,omitempty"`
+	Extra        map[string]string `json:"extra,omitempty"`
 }
 
 // #region TestQueryResponse
