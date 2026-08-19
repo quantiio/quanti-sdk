@@ -70,12 +70,68 @@ type OAuthCallbackParams struct {
 }
 
 // #region TestRequestParams
-// TestRequestParams contains the custom request parameters for testing
+// TestRequestParams contains the custom request parameters for testing.
+//
+// Les 4 champs nommés couvrent le modèle "rapport analytics" (report + fields +
+// filters + sorts) partagé par la majorité des connecteurs. Ils restent la voie
+// normale : ne pas passer par Raw quand ils suffisent.
+//
+// Raw conserve l'objet `testRequest` COMPLET tel que l'API l'a écrit, clés inconnues
+// de cette struct incluses. C'est indispensable aux connecteurs dont la requête est
+// une structure arbitraire décrite dans le conf.yml (api-rest-v2 :
+// source/auth/pagination/retry/records) : sans ça, test-query et infer-schema ne
+// peuvent pas recevoir la spec à tester, et l'aller-retour "j'écris ma requête → je
+// la teste → j'en déduis le schéma" est impossible.
+//
+// Utiliser Decode (struct typée) ou AsMap (moteur générique) pour lire Raw.
 type TestRequestParams struct {
 	Report  string   `json:"report"`
 	Fields  []string `json:"fields,omitempty"`
 	Filters []string `json:"filters,omitempty"`
 	Sorts   []string `json:"sorts,omitempty"`
+
+	// Raw n'est pas peuplé par le décodage de struct classique (tag "-") mais par
+	// UnmarshalJSON ci-dessous, qui conserve les octets d'origine.
+	Raw json.RawMessage `json:"-"`
+}
+
+// #region TestRequestParams.UnmarshalJSON
+// UnmarshalJSON remplit les champs nommés ET conserve les octets bruts.
+//
+// L'alias local est obligatoire : décoder dans TestRequestParams rappellerait cette
+// méthode et bouclerait à l'infini.
+func (p *TestRequestParams) UnmarshalJSON(data []byte) error {
+	type alias TestRequestParams
+	var a alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+	*p = TestRequestParams(a)
+	p.Raw = append(json.RawMessage(nil), data...)
+	return nil
+}
+
+// #region TestRequestParams.Decode
+// Decode désérialise la requête brute dans v (typiquement la struct de spec du
+// connecteur). Erreur explicite si aucune requête n'a été transmise : un "spec vide"
+// silencieux se traduirait par un test réussi… sur rien.
+func (p *TestRequestParams) Decode(v any) error {
+	if p == nil || len(p.Raw) == 0 {
+		return fmt.Errorf("no testRequest provided in the setup config")
+	}
+	return json.Unmarshal(p.Raw, v)
+}
+
+// #region TestRequestParams.AsMap
+// AsMap retourne la requête brute en map, pour les moteurs génériques qui parsent
+// eux-mêmes leur spec depuis un map[string]any — même chemin de parsing en test
+// qu'en production.
+func (p *TestRequestParams) AsMap() (map[string]any, error) {
+	var m map[string]any
+	if err := p.Decode(&m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // #region LoadSetupConfig
