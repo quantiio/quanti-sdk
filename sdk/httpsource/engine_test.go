@@ -901,6 +901,12 @@ func TestFetch_DataErrors(t *testing.T) {
 		if !strings.Contains(err.Error(), "results") {
 			t.Errorf("the message should list the available keys, got %q", err.Error())
 		}
+		// …et le corps est joint : une API qui répond 200 avec une enveloppe d'erreur
+		// (webhook n8n non enregistré, clé refusée) ne se diagnostique QUE par la
+		// valeur de message/error, pas par la liste des clés.
+		if !strings.Contains(err.Error(), "response body:") {
+			t.Errorf("the message should include a body excerpt, got %q", err.Error())
+		}
 	})
 
 	t.Run("null path is not an error", func(t *testing.T) {
@@ -1120,6 +1126,73 @@ func TestFetch_ExistingQueryStringIsPreserved(t *testing.T) {
 	collect(t, fastEngine(nil), spec, Vars{Date: "2026-08-12"})
 	if fixed != "2" || dated != "2026-08-12" {
 		t.Errorf("got v=%q date=%q, want v=2 and the date", fixed, dated)
+	}
+}
+
+// #endregion
+
+// #region TestFetch_ErrorEnvelopeOn200IsDiagnosable
+// Cas réel rencontré sur stg (2026-08-20) : un webhook n8n non enregistré répond
+// HTTP 200 avec {"error","hint","message"} au lieu des données. Le moteur voit un 200
+// dont le records.path est absent — il ne peut pas deviner que c'est une erreur. Le
+// message doit donc porter la VALEUR du corps, sinon le diagnostic est impossible
+// (lister "available: error, hint, message" ne dit pas quoi corriger).
+func TestFetch_ErrorEnvelopeOn200IsDiagnosable(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, `{"error":"unauthorized","hint":"check your token","message":"webhook not registered"}`)
+	}))
+	defer srv.Close()
+
+	spec := mustSpec(t, map[string]any{
+		"source":  map[string]any{"url": srv.URL},
+		"records": map[string]any{"path": "carts"},
+	})
+
+	_, err := fastEngine(nil).Fetch(context.Background(), spec, Vars{Date: "2026-08-12"}, func(map[string]any) error { return nil })
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	if !strings.Contains(err.Error(), "webhook not registered") {
+		t.Errorf("the actionable value of the envelope must appear, got %q", err.Error())
+	}
+	if KindOf(err) != KindInvalidData {
+		t.Errorf("kind: got %v, want invalid_data", KindOf(err))
+	}
+}
+
+// #endregion
+
+// #region TestFetch_ErrorEnvelopeExcerptIsRedacted
+// L'extrait de corps joint au message d'erreur traverse le rédacteur. Une API qui
+// renvoie la clé reçue en écho dans son enveloppe d'erreur ne doit pas la faire
+// atterrir dans qm_process.last_execution_message ni dans Loki.
+func TestFetch_ErrorEnvelopeExcerptIsRedacted(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// HTTP 200 + enveloppe d'erreur qui répète le token reçu.
+		fmt.Fprintf(w, `{"error":"bad token %s","message":"denied"}`, r.Header.Get("X-Api-Token"))
+	}))
+	defer srv.Close()
+
+	spec := mustSpec(t, map[string]any{
+		"source":  map[string]any{"url": srv.URL},
+		"auth":    map[string]any{"mode": "header", "name": "X-Api-Token", "value": "{{credentials.apikey}}"},
+		"records": map[string]any{"path": "carts"},
+	})
+
+	_, err := fastEngine(nil).Fetch(context.Background(), spec, Vars{
+		Date:        "2026-08-12",
+		Credentials: map[string]any{"apikey": "SECRET-ECHOED-BACK"},
+	}, func(map[string]any) error { return nil })
+
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	if strings.Contains(err.Error(), "SECRET-ECHOED-BACK") {
+		t.Fatalf("the body excerpt leaks the credential: %q", err.Error())
+	}
+	// Le reste du corps doit rester lisible, sinon l'extrait ne sert à rien.
+	if !strings.Contains(err.Error(), "denied") {
+		t.Errorf("the actionable part of the body should survive redaction, got %q", err.Error())
 	}
 }
 

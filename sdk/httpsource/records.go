@@ -61,7 +61,16 @@ func parseJSONRecords(body []byte, path string) ([]map[string]any, error) {
 
 	target, err := navigatePath(parsed, path)
 	if err != nil {
-		return nil, err
+		// Beaucoup d'API répondent HTTP 200 avec une ENVELOPPE D'ERREUR (webhook n8n
+		// non enregistré, clé refusée, quota dépassé…). Le moteur ne peut pas le
+		// deviner : pour lui c'est un 200 dont le path est simplement absent.
+		//
+		// Lister les clés disponibles ne suffit alors pas à diagnostiquer — c'est la
+		// VALEUR de `message` / `error` qui dit quoi corriger. On joint donc un extrait
+		// tronqué du corps. Il traverse le rédacteur avant toute sortie, donc une clé
+		// que l'API renverrait en écho reste masquée.
+		return nil, newErr(KindOf(err), 0, nil, "%s — response body: %s",
+			err.Error(), truncate(strings.TrimSpace(string(body)), 300))
 	}
 
 	switch t := target.(type) {
