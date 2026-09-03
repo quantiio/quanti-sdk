@@ -39,6 +39,11 @@ const (
 	// for cases the source states outright; never for an ambiguous/unqualified
 	// error, or a real failure (e.g. revoked credentials) goes unnoticed.
 	ERR_WARN_ACCOUNT_LIMITATION QErrorCode = 3000
+	// The source explicitly rejected the request because the requested date
+	// falls outside its data retention window (report/history no longer
+	// available) — a permanent, expected condition for that date, not a
+	// connector failure.
+	ERR_WARN_OUT_OF_RETENTION_WINDOW QErrorCode = 3010
 )
 
 var errorCodeLabels = map[QErrorCode]string{
@@ -59,6 +64,7 @@ var errorCodeLabels = map[QErrorCode]string{
 	ERR_DEF_PROCESSED_WITH_ERROR:         "DEF",
 	ERR_DEF_COST_LIMIT_EXCEEDED:          "DEF",
 	ERR_WARN_ACCOUNT_LIMITATION:          "WARN",
+	ERR_WARN_OUT_OF_RETENTION_WINDOW:     "WARN",
 }
 
 var ErrorCodes = map[QErrorCode]string{
@@ -79,6 +85,7 @@ var ErrorCodes = map[QErrorCode]string{
 	ERR_DEF_PROCESSED_WITH_ERROR:         "Processed with error",
 	ERR_DEF_COST_LIMIT_EXCEEDED:          "Datawarehouse cost limit exceeded",
 	ERR_WARN_ACCOUNT_LIMITATION:          "Account limitation reported by the third-party source",
+	ERR_WARN_OUT_OF_RETENTION_WINDOW:     "Date outside the source's data retention window",
 }
 
 func ParseQErrorCode(val interface{}) (QErrorCode, bool) {
